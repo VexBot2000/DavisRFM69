@@ -18,8 +18,8 @@
 // America) and EU frequencies are defined at this time.  Australia and New
 // Zealand are placeholders.  Note however that the frequencies for AU and NZ
 // are not known at this time.
-#define DAVIS_FREQS_US
-//#define DAVIS_FREQS_EU
+//#define DAVIS_FREQS_US
+#define DAVIS_FREQS_EU
 //#define DAVIS_FREQS_AU
 //#define DAVIS_FREQS_NZ
 
