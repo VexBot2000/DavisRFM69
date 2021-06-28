@@ -159,8 +159,6 @@ void loop() {
     lastPeriod=currPeriod;
   }
 
-// czas = timer.tick() % 2500000;
-// if(czas >=0 && czas <= 500000){
  if (radio.receiveDone()) {
     packetStats.packetsReceived++;
     uint16_t crc = radio.crc16_ccitt(radio.DATA, 6);
@@ -168,14 +166,12 @@ void loop() {
       if (strmon) printStrm();
       packetStats.receivedStreak++;
       hopCount = 1;
-    } else {
+    } 
+    else {
       packetStats.crcErrors++;
-      packetStats.receivedStreak = 0;
-      
+      packetStats.receivedStreak = 0;      
     }
 
-
-    
     // Whether CRC is right or not, we count that as reception and hop.
     lastRxTime = millis();
     radio.hop();
@@ -192,38 +188,35 @@ void loop() {
     if (hopCount == 1) packetStats.numResyncs++;
     if (++hopCount > 25) hopCount = 0;
     radio.hop();
-    
   }
 
-  if(packetStats.crcErrors >=3)
-      {
-        radio.CHANNEL = 0;
-       packetStats.crcErrors = 0;
-      }
+  if(packetStats.crcErrors >=3){
+    radio.CHANNEL = 0;
+    packetStats.crcErrors = 0;
+  }
 }
+//koniec void loop
 
 // Read the data from the ISS and figure out what to do with it
 void processPacket() {
-
   // Every packet has wind speed, direction, and battery status in it
-  loopData.windSpeed = radio.DATA[1];
 
+  //DANE - PRĘDKOŚĆ WIATRU
+  loopData.windSpeed = radio.DATA[1];
   Serial.print(" ws ");
   Serial.print(loopData.windSpeed);
 
+  //DANE - KIERUNEK WIATRU
   // There is a dead zone on the wind vane. No values are reported between 8
   // and 352 degrees inclusive. These values correspond to received byte
   // values of 1 and 255 respectively
   // See http://www.wxforum.net/index.php?topic=21967.50
   loopData.windDirection = 9 + radio.DATA[2] * 342.0f / 255.0f;
-
-
   Serial.print(F(" wd "));
   Serial.print(loopData.windDirection);
 
-
+  //DANE - STAN NAŁADOWANIA BATERII
   loopData.transmitterBatteryStatus = (radio.DATA[0] & 0x8) >> 3;
-
   Serial.print(" bat ");
   Serial.print(loopData.transmitterBatteryStatus);
 
@@ -232,41 +225,38 @@ void processPacket() {
   // The highest order bit of the low nibble is set high when the ISS battery is low.
   // The low order three bits of the low nibble are the station ID.
 
-
+  //DANE - UV
   switch (radio.DATA[0] >> 4) {
     case VP2P_UV:
-   loopData.uV = (uint8_t)(word(radio.DATA[3] << 8 + radio.DATA[4]) >> 6) / 50.0;
+      loopData.uV = (uint8_t)(word(radio.DATA[3] << 8 + radio.DATA[4]) >> 6) / 50.0;
+      Serial.print(F(" uv "));
+      Serial.print(loopData.uV);
+      break;
 
-    Serial.print(F(" uv "));
-    Serial.print(loopData.uV);
-    break;
-    
+    //DANE - PROMIENIOWANIE SŁONECZNE(?)
     case VP2P_SOLAR:
-    loopData.solarRadiation = (uint16_t)(word(radio.DATA[3] << 8 + radio.DATA[4]) >> 6) * 1.757936;
-    Serial.print(F(" sr "));
-    Serial.print(loopData.solarRadiation);
-    break;
-    
-    
-  case VP2P_TEMP:
-    loopData.outsideTemperature = (int16_t)(word(radio.DATA[3], radio.DATA[4])) >> 4 / 160;
-    float x = (loopData.outsideTemperature - 32) / 1.8;
-    x = x / 325;
-    Serial.print(F(" ta "));
-    Serial.print(x);
+      loopData.solarRadiation = (uint16_t)(word(radio.DATA[3] << 8 + radio.DATA[4]) >> 6) * 1.757936;
+      Serial.print(F(" sr "));
+      Serial.print(loopData.solarRadiation);
+      break;
 
-    break;
-  case VP2P_HUMIDITY:
-    loopData.outsideHumidity = (float)(word((radio.DATA[4] >> 4), radio.DATA[3])) / 10.0;
+    //DANE - TEMPERATURA
+    case VP2P_TEMP:
+      loopData.outsideTemperature = (int16_t)(word(radio.DATA[3], radio.DATA[4])) >> 4 / 160;
+      float x = (loopData.outsideTemperature - 32) / 1.8;
+      x = x / 325;
+      Serial.print(F(" ta "));
+      Serial.print(x);
+     break;
 
-    Serial.print(" rh ");
-    Serial.print(loopData.outsideHumidity);
-
-    break;
+    //DANE - WILGOTNOŚĆ
+    case VP2P_HUMIDITY:
+      loopData.outsideHumidity = (float)(word((radio.DATA[4] >> 4), radio.DATA[3])) / 10.0;
+      Serial.print(" rh ");
+      Serial.print(loopData.outsideHumidity);
+      break;
     
     // default:
-
-    
   }
  
 #if 0
@@ -472,6 +462,11 @@ void printOk() {
 }
 //Funkcja odpowiadająca za wysyłanie pakietów
 void printStrm() {
+/* Struktura pakietu:
+    cnt <NUMER PAKIERTU> hex <DANE JAK NIŻEJ, TYLKO ZEBRANE W JEDNYM CIĄGU> ws <PRĘDKOŚĆ WIATRU> wd <KIERUNEK WIATRU> bat <STATUS BATERII> chan <KANAŁ> RSSI <MOC ODEBRANEGO SYGNAŁU> errors <WYKRYTE BŁĘDY Z CRC>  missed <PAKIETY UTRACONE> numresyncs 45
+    <DANE JAK W POLU 'hex', ALE W FORMACIE STRM DAVISA>
+    ...
+ */
   cnt++;
   Serial.print(F("cnt "));
   Serial.print(cnt);
@@ -482,31 +477,28 @@ void printStrm() {
     Serial.print(charBuffer);
     }
   processPacket();
-
   Serial.print(F(" chan "));
   Serial.print(radio.CHANNEL);
-  Serial.print(F("  RSSI "));
+  Serial.print(F(" RSSI "));
   Serial.print(radio.RSSI);
-  Serial.print(F("  errors "));
+  Serial.print(F(" errors "));
   //Max amount of errors is 3. If there are 3 or more it resets back to 0
   Serial.print(packetStats.crcErrors);
-  Serial.print(F("  missed "));
+  Serial.print(F(" missed "));
   Serial.print(packetStats.packetsMissed);
   Serial.print(F(" numresyncs "));
-  Serial.print(packetStats.numResyncs);
-  Serial.print(F("\r\n"));
-  
+  Serial.println(packetStats.numResyncs);
+
+  //Transmisja odebranych danych w formacie jak w STRM
   for (uint8_t i = 0; i < DAVIS_PACKET_LEN; i++) {
     Serial.print(i);
     Serial.print(" = ");
     String dane = String(radio.DATA[i], HEX);
     dane.toLowerCase();
-    Serial.print(dane);
-    Serial.print(F("\n\r"));
+    Serial.println(dane);
   }
-  Serial.print(F("\n\r"));
-  
-}
+  Serial.println();
+} 
 
 // Ancillary functions
 void blink(uint8_t PIN, uint16_t DELAY_MS)
