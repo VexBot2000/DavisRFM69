@@ -249,7 +249,7 @@ void processPacket() {
       Serial.print(x);
      break;
 
-    //DANE - WILGOTNOŚĆ
+    //DANE - WILGOTNOŚĆ //nie łapie
     case VP2P_HUMIDITY:
       loopData.outsideHumidity = (float)(word((radio.DATA[4] >> 4), radio.DATA[3])) / 10.0;
       Serial.print(" rh ");
@@ -463,7 +463,7 @@ void printOk() {
 //Funkcja odpowiadająca za wysyłanie pakietów
 void printStrm() {
 /* Struktura pakietu:
-    cnt <NUMER PAKIERTU> hex <DANE JAK NIŻEJ, TYLKO ZEBRANE W JEDNYM CIĄGU> ws <PRĘDKOŚĆ WIATRU> wd <KIERUNEK WIATRU> bat <STATUS BATERII> chan <KANAŁ> RSSI <MOC ODEBRANEGO SYGNAŁU> errors <WYKRYTE BŁĘDY Z CRC>  missed <PAKIETY UTRACONE> numresyncs 45
+    cnt <NUMER PAKIERTU> hex <DANE JAK NIŻEJ, TYLKO ZEBRANE W JEDNYM CIĄGU> ws <PRĘDKOŚĆ WIATRU> wd <KIERUNEK WIATRU> bat <STATUS BATERII> chan <KANAŁ> RSSI <MOC ODEBRANEGO SYGNAŁU> errors <WYKRYTE BŁĘDY Z CRC>  missed <PAKIETY UTRACONE> numresyncs <>
     <DANE JAK W POLU 'hex', ALE W FORMACIE STRM DAVISA>
     ...
  */
