@@ -99,6 +99,7 @@ void setup() {
   sCmd.addCommand("EEBRD", cmdEebrd);       // EEPROM Read
   sCmd.addCommand("DMPAFT", cmdDmpaft); // Download archive records after date:time specified
   sCmd.addCommand("INFO", processPacket);
+  sCmd.addCommand("ALLREG", cmdReadRegs);// Opcja debugowania - wyświetla wszytskie stany rejestrów
   
 #if 0
   printFreeRam();
@@ -251,11 +252,29 @@ void processPacket() {
 
     //DANE - WILGOTNOŚĆ //nie łapie
     case VP2P_HUMIDITY:
-      loopData.outsideHumidity = (float)(word((radio.DATA[4] >> 4), radio.DATA[3])) / 10.0;
+      loopData.outsideHumidity = (float)(word(((radio.DATA[4] >> 4)<< 8) + radio.DATA[3])) / 10.0;
       Serial.print(" rh ");
       Serial.print(loopData.outsideHumidity);
       break;
-    
+
+
+    // DANE - DESZCZ 
+    case VP2P_RAIN:
+    loopData.rain = (float)(word(radio.DATA[3]));
+    float z = (float)(word(radio.DATA[5]));
+    Serial.print(" re ");  
+    if (z = 41)
+    {
+     Serial.print(" true ");
+    }
+    else
+      {
+      Serial.print(" false ");
+      }
+    Serial.print(" ra ");
+    Serial.print(loopData.rain);
+    break;
+
     // default:
   }
  
@@ -364,6 +383,12 @@ void cmdLoop() {
   } else {
     loopCount = 1;
   }
+}
+
+void cmdReadRegs(){ // Opcja debugowania wyświetla wszystkie rejestry moteino
+  Serial.print(" DEBUG - Read all registers ")
+radio.readAllRegs(); 
+ Serial.print(" DONE ")
 }
 
 void sendLoopPacket() {
