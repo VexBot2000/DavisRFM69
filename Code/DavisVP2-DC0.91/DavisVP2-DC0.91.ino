@@ -3,7 +3,7 @@
 // and the TI CC1020 transmitter used in that hardware.  Packets received from the ISS are
 // translated into a format compatible with the Davis Vantage Pro2 (VP2) and Vantage Vue
 // consoles.  This example also reads BMP085 and DHT22 sensors connected directly to the
-// Moteino (see below).
+// Moteino (see below)
 // See http://madscientistlabs.blogspot.com/2014/02/build-your-own-davis-weather-station_17.html
 
 // This is part of the DavisRFM69 library from https://github.com/dekay/DavisRFM69
