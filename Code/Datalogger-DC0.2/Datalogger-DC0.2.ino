@@ -33,6 +33,7 @@
 #define DATAFLASH_PROGRAM_SECURITY_REGISTER_1 0x00
 #define DATAFLASH_PROGRAM_SECURITY_REGISTER_2 0x00
 #define DATAFLASH_PROGRAM_SECURITY_REGISTER_3 0x00
+#define wersja 0.2
 
 
 //As per Watson's work described at http://www.wxforum.net/index.php?topic=18110.msg200376
@@ -219,6 +220,8 @@ void setup(){
    sCmd.addCommand("PROG", programChip);
   sCmd.addCommand("CHECK", checkChip);
   sCmd.addCommand("REFRESH", chipErrors);
+  sCmd.addDefaultHandler(unrecognized);
+  sCmd.addCommand("HELP", help);
  
   //Uncomment (remove the /* at the start and */ at the end) the lines
   //below to program the Security Register
@@ -442,4 +445,23 @@ for (int i=0;i<64;i++){
    }
 }
 digitalWrite(csPin,HIGH);
+}
+
+void unrecognized()
+{
+  Serial.println("Nieznana komenda - wpisz 'HELP' aby wyswietlic mozliwe komendy"); 
+
+}
+
+void help()
+{
+  Serial.println(""); 
+Serial.print("DLOGGER v"); 
+Serial.println(wersja); 
+Serial.println("spis komend:"); 
+
+ Serial.println("PROG - po sprawdzeniu co najmniej 3 razy programuje chip. Mozna tylko raz zaprogramowac tylko raz!!!!");
+ Serial.println("CHECK - pokazuje jakie wartości są wpisane w rejestrze programowalnym , domyslnie jest OxFF pusty niezaprogramowany");
+ Serial.println("REFRESH - sprawdza czy chip nadaje się do zaprogramowania");
+
 }
