@@ -1,7 +1,7 @@
 #include <SPI.h>
 #include <SerialCommand.h>
 /*  This code by default reads the 64 byte unique Device Identifier on
-    the attached AT45DB001D, outputs it to the console, and then calculates
+    the attached AT45DB081E, outputs it to the console, and then calculates
     the 64 bytes to be programmed in the Security Register to match a
     genuine Davis Weatherlink interface, and outputs those 64 bytes
     to the console.  By uncommenting the last section in the setup() loop
@@ -220,7 +220,7 @@ void setup(){
    sCmd.addCommand("PROG", programChip);
   sCmd.addCommand("CHECK", checkChip);
   sCmd.addCommand("REFRESH", chipErrors);
-  sCmd.addDefaultHandler(unrecognized);
+  sCmd.setDefaultHandler(unrecognized);
   sCmd.addCommand("HELP", help);
  
   //Uncomment (remove the /* at the start and */ at the end) the lines
