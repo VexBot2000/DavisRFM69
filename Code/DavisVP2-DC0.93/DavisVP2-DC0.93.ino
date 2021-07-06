@@ -1,6 +1,6 @@
-// Sample usage of the DavisRFM69 library to sniff the packets from a Davis Instruments
-// wireless Integrated Sensor Suite (ISS), demostrating compatibility between the RFM69
-// and the TI CC1020 transmitter used in that hardware.  Packets received from the ISS are
+        // Sample usage of the DavisRFM69 library to sniff the packets from a Davis Instruments
+        // wireless Integrated Sensor Suite (ISS), demostrating compatibility between the RFM69
+        // and the TI CC1020 transmitter used in that hardware.  Packets received from the ISS are
 // translated into a format compatible with the Davis Vantage Pro2 (VP2) and Vantage Vue
 // consoles.  This example also reads BMP085 and DHT22 sensors connected directly to the
 // Moteino (see below)
@@ -245,7 +245,7 @@ void processPacket() {
 
     //DANE - TEMPERATURA
     case VP2P_TEMP:
-      loopData.outsideTemperature = (int16_t)(word(radio.DATA[3], radio.DATA[4])) >> 4 / 160;
+      loopData.outsideTemperature = (uint16_t)(word((radio.DATA[3]<<8) | (radio.DATA[4]))) / 160;
       float x = (loopData.outsideTemperature - 32) *(5/9);
       
       Serial.print(F(" ta "));
@@ -576,6 +576,8 @@ void cmdDmpaft() {
   Serial.write(highByte(crc));
   Serial.write(lowByte(crc));
 }
+
+
 void clearAlarmInterrupt()
 {
   oneMinutePassed = false;
