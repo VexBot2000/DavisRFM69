@@ -27,7 +27,7 @@
 #include <Arduino.h>            //assumes Arduino IDE v1.0 or greater
 
 #define DAVIS_PACKET_LEN    10 // ISS has fixed packet length of 10 bytes, including CRC and retransmit CRC
-#define RF69_SPI_CS         SS // SS is the SPI slave select pin, for instance D10 on ATmega328
+#define RF69_SPI_CS         10 // SS is the SPI slave select pin, for instance D10 on ATmega328
 
 // INT0 on AVRs should be connected to RFM69's DIO0 (ex on ATmega328 it's D2, on ATmega644/1284 it's D2)
 #if defined(__AVR_ATmega168__) || defined(__AVR_ATmega328P__) || defined(__AVR_ATmega88) || defined(__AVR_ATmega8__) || defined(__AVR_ATmega88__)
@@ -316,7 +316,7 @@ struct __attribute__((packed)) LoopPacket
   uint16_t  barometer;   // Current barometer in Hg / 1000
   int16_t   insideTemperature;  // Inside temperature in tenths of degrees
   uint8_t   insideHumidity;     // Inside relative humidity in percent
-  int16_t   outsideTemperature; // Outside temperature in tenths of degrees
+  float  outsideTemperature; // Outside temperature in tenths of degrees
   uint8_t   windSpeed;          // Wind speed in miles per hour
   uint8_t   tenMinAvgWindSpeed; // Average wind speed over last ten minutes
   uint16_t  windDirection;      // Wind direction from 1 to 360 degrees (0 = no wind data)

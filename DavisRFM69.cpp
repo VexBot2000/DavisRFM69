@@ -262,7 +262,7 @@ int16_t DavisRFM69::readRSSI(bool forceTrigger) {
     // RSSI trigger not needed if DAGC is in continuous mode
     writeReg(REG_RSSICONFIG, RF_RSSI_START);
     while ((readReg(REG_RSSICONFIG) & RF_RSSI_DONE) == 0x00); // Wait for RSSI_Ready
-
+  }
   rssi = -readReg(REG_RSSIVALUE);
   rssi >>= 1;
   return rssi;
