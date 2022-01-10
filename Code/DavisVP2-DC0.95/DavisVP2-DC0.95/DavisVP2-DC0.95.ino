@@ -225,9 +225,9 @@ void processPacket() {
   Serial.print(loopData.transmitterBatteryStatus);
   //Debug
   
-  Serial.print(" test ");
+ // Serial.print(" test ");
   uint8_t test = radio.DATA[0]>>4;
-  Serial.print(test,DEC);
+ // Serial.print(test,DEC);
  
   // Now look at each individual packet. The high order nibble is the packet type.
   // The highest order bit of the low nibble is set high when the ISS battery is low.
@@ -244,7 +244,7 @@ void processPacket() {
      if (test == VP2P_RAIN) //INTESYWNOSC DESZCZU
   {
     loopData.rainRate = (float)(word(radio.DATA[3]));
-    float z = (float)(word(radio.DATA[5]));
+    uint8_t z = (uint8_t)(word(radio.DATA[5]));
     Serial.print(" re ");  
     if (z == 41)
     {
@@ -646,6 +646,8 @@ Serial.println("spis komend:");
   Serial.println("DMPAFT - Download archive records after date:time specified");
   Serial.println("INFO - Analizuje ostatnio odebrany pakiet jeszcze raz");
   Serial.println("ALLREG - Opcja debugowania wyswietla wszytskie stany rejestrow");
-  
+ // Serial.println("Oznaczenia danych: ws - predkosc wiatru [mile/h],wd - kierunek wiatru w stopniach,bat - stan baterii (1 brak lub rozładowana,a 0 naładowana)\nta - temperatura w stopniach celsjusza,sr - promieniowanie sloneczne w W/m2[none - oznacza brak czujnika],uV - index uV [none - oznacza brak czujnika]\nrh - wilgotnosc w %, re - poziom deszczu[false oznacza brak]");
+  //Serial.println("ta - temperatura w stopniach celsjusza,sr - promieniowanie sloneczne w W/m2[none - oznacza brak czujnika],uV - index uV [none - oznacza brak czujnika]");
+ // Serial.println("rh - wilgotnosc w %, re - poziom deszczu[false oznacza brak]");
 
 }
