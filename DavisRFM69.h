@@ -77,7 +77,7 @@
 #define STYPE_SOIL_LEAF     0x8 // Soil/Leaf Station
 #define STYPE_SENSORLINK    0x9 // SensorLink Station (not supported for the VP2)
 #define STYPE_OFF           0xA // No station - OFF
-
+/*
 // Davis packet types, also defined by kobuki
 #define VP2P_UV             0x4 // UV index
 #define VP2P_RAINSECS       0x5 // seconds between rain bucket tips
@@ -86,6 +86,15 @@
 #define VP2P_WINDGUST       0x9 // 10-minute wind gust
 #define VP2P_HUMIDITY       0xA // outside humidity
 #define VP2P_RAIN           0xE // rain bucket tips counter
+*/
+// Davis packet types, also defined by kobuki
+#define VP2P_UV             4 // UV index
+#define VP2P_RAINSECS       5 // seconds between rain bucket tips
+#define VP2P_SOLAR          6 // solar irradiation
+#define VP2P_TEMP           8 // outside temperature
+#define VP2P_WINDGUST       9 // 10-minute wind gust
+#define VP2P_HUMIDITY       10 // outside humidity
+#define VP2P_RAIN           14 // rain bucket tips counter
 
 class DavisRFM69 {
   public:
@@ -326,8 +335,8 @@ struct __attribute__((packed)) LoopPacket
   uint8_t   outsideHumidity;       // Outside relative humidity in %.
   uint8_t   extraHumidities[7];    // Relative humidity in % from seven extra stations.
   uint16_t  rainRate;          // Rain rate as number of rain clicks per hour (e.g 256 = 2.56 in/hr)
-  uint8_t   uV;                // UV index
-  uint16_t  solarRadiation;    // Solar radiation in Watts/m^2
+  float   uV;                // UV index
+  float  solarRadiation;    // Solar radiation in Watts/m^2
   uint16_t  stormRain;         // Storm rain stored as hundredths of an inch
   uint16_t  startDateOfStorm;  // Bits 15-12 is month, bits 11-7 is day, and bits 6-0 is year offset by 2000
   uint16_t  dayRain;           // Rain today sent as number of rain clicks (0.2mm or 0.01in)

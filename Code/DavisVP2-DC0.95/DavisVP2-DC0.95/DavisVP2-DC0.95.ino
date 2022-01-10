@@ -26,7 +26,7 @@
 // http://forum.arduino.cc/index.php?PHPSESSID=uakeh64e6f5lb3s35aunrgfjq1&topic=102182.msg766625#msg766625
 #undef PROGMEM
 #define PROGMEM __attribute__(( section(".progmem.data") ))
-#define wersja 0.93
+#define wersja 0.95
 
 
 // NOTE: *** One of DAVIS_FREQS_US, DAVIS_FREQS_EU, DAVIS_FREQS_AU, or
@@ -205,6 +205,7 @@ void processPacket() {
   // Every packet has wind speed, direction, and battery status in it
 
   //DANE - PRĘDKOŚĆ WIATRU
+  Serial.println(radio.DATA[0]);
   loopData.windSpeed = radio.DATA[1];
   Serial.print(" ws ");
   Serial.print(loopData.windSpeed);
@@ -222,18 +223,47 @@ void processPacket() {
   loopData.transmitterBatteryStatus = (radio.DATA[0] & 0x8) >> 3;
   Serial.print(" bat ");
   Serial.print(loopData.transmitterBatteryStatus);
-
-
+  //Debug
+  
+  Serial.print(" test ");
+  uint8_t test = radio.DATA[0]>>4;
+  Serial.print(test,DEC);
+ 
   // Now look at each individual packet. The high order nibble is the packet type.
   // The highest order bit of the low nibble is set high when the ISS battery is low.
   // The low order three bits of the low nibble are the station ID.
 
-  //DANE - UV
-  switch (radio.DATA[0] >> 4) {
+  //DANE - U
+
+     if (test == VP2P_HUMIDITY) //WILGOTNOSC
+  {
+        loopData.outsideHumidity = (float)(word(((radio.DATA[4] >> 4)<< 8) + radio.DATA[3])) / 10.0;
+      Serial.print(" rh ");
+      Serial.print(loopData.outsideHumidity);
+  }
+     if (test == VP2P_RAIN) //INTESYWNOSC DESZCZU
+  {
+    loopData.rainRate = (float)(word(radio.DATA[3]));
+    float z = (float)(word(radio.DATA[5]));
+    Serial.print(" re ");  
+    if (z == 41)
+    {
+    Serial.print(" true ");
+    Serial.print(" ra ");
+    Serial.print(loopData.rainRate);
+    }
+    else
+      {
+      Serial.print(" false ");
+      }
+ 
+  }
+  switch (test) {
+    // DANE - INDEX UV
     case VP2P_UV:
-      loopData.uV = (uint8_t)(word(radio.DATA[3] << 8 + radio.DATA[4]) >> 6) / 50.0;
+      loopData.uV = (float)(word(radio.DATA[3] << 8 + radio.DATA[4]) >> 6) / 50.0;
       if(radio.DATA[3]==0xFF)
-        Serial.print("sr-none");
+        Serial.print(" uv-none ");
         else{
       Serial.print(F(" uv "));
       Serial.print(loopData.uV);
@@ -242,9 +272,9 @@ void processPacket() {
 
     //DANE - PROMIENIOWANIE SŁONECZNE(?)
     case VP2P_SOLAR:
-      loopData.solarRadiation = (uint16_t)(word(radio.DATA[3] << 8 + radio.DATA[4]) >> 6) * 1.757936;
+      loopData.solarRadiation = (float)(word(radio.DATA[3] << 8 + radio.DATA[4]) >> 6) * 1.757936;
       if(radio.DATA[3]==0xFF)
-        Serial.print("sr-none");
+        Serial.print(" sr-none ");
         else{
       Serial.print(F(" sr "));
       Serial.print(loopData.solarRadiation);
@@ -254,14 +284,15 @@ void processPacket() {
     //DANE - TEMPERATURA
     case VP2P_TEMP:
       loopData.outsideTemperature = (float)(word((radio.DATA[3]<<8) | (radio.DATA[4]))) / 160.0;
-      float x = (float)(word((radio.DATA[3]<<8) | (radio.DATA[4]))) / 160.0;
-       x = (x-32)*0.555555556;
+      float x = loopData.outsideTemperature-32;
+      x =x *5;
+      x = x/9;
       Serial.print(F(" ta "));
       Serial.print(x);
      break;
-
+  /*
     //DANE - WILGOTNOŚĆ //nie łapie
-    case VP2P_HUMIDITY:
+    case 0xA:
       loopData.outsideHumidity = (float)(word(((radio.DATA[4] >> 4)<< 8) + radio.DATA[3])) / 10.0;
       Serial.print(" rh ");
       Serial.print(loopData.outsideHumidity);
@@ -269,11 +300,11 @@ void processPacket() {
 
 
     // DANE - DESZCZ 
-    case VP2P_RAIN:
+    case 0xE:
     loopData.rainRate = (float)(word(radio.DATA[3]));
     float z = (float)(word(radio.DATA[5]));
     Serial.print(" re ");  
-    if (z = 41)
+    if (z == 41)
     {
      Serial.print(" true ");
     }
@@ -284,8 +315,9 @@ void processPacket() {
     Serial.print(" ra ");
     Serial.print(loopData.rainRate);
     break;
-
-    // default:
+*/
+     //default:
+  
   }
  
 #if 0
