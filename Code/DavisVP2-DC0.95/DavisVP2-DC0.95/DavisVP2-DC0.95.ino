@@ -66,6 +66,8 @@ void rtcInterrupt(void) {
   oneMinutePassed = true;
 }
 
+void(* resetFunc) (void) = 0;
+
 void setup() {
   Serial.begin(SERIAL_BAUD);
   Serial.println("Serial connection ON");
@@ -102,6 +104,7 @@ void setup() {
   sCmd.addCommand("INFO", processPacket);
   sCmd.addCommand("ALLREG", cmdReadRegs);// Opcja debugowania - wyświetla wszytskie stany rejestrów
   sCmd.addCommand("HELP", help);
+  sCmd.addCommand("RESET", resetFunc);
   
 #if 0
   printFreeRam();
@@ -635,7 +638,7 @@ Serial.print("DAVISVP2 v");
 Serial.println(wersja); 
 Serial.println("spis komend:"); 
 
- 
+  Serial.println("RESET"); 
   Serial.println("LOOP - Send the loop data"); 
   Serial.println("RXCHECK - Receiver Stats check"); 
   Serial.println("SETPER - Set archive interval period"); 
@@ -644,8 +647,8 @@ Serial.println("spis komend:");
   Serial.println("TEST - Echo's TEST");
   Serial.println("EEBRD - EEPROM Read");
   Serial.println("DMPAFT - Download archive records after date:time specified");
-  Serial.println("INFO - Analizuje ostatnio odebrany pakiet jeszcze raz");
-  Serial.println("ALLREG - Opcja debugowania wyswietla wszytskie stany rejestrow");
+  Serial.println("INFO - Analizuje ostatnio odebrany pakiet");
+  Serial.println("ALLREG - wyswietla wszytskie stany rejestrow");
  // Serial.println("Oznaczenia danych: ws - predkosc wiatru [mile/h],wd - kierunek wiatru w stopniach,bat - stan baterii (1 brak lub rozładowana,a 0 naładowana)\nta - temperatura w stopniach celsjusza,sr - promieniowanie sloneczne w W/m2[none - oznacza brak czujnika],uV - index uV [none - oznacza brak czujnika]\nrh - wilgotnosc w %, re - poziom deszczu[false oznacza brak]");
   //Serial.println("ta - temperatura w stopniach celsjusza,sr - promieniowanie sloneczne w W/m2[none - oznacza brak czujnika],uV - index uV [none - oznacza brak czujnika]");
  // Serial.println("rh - wilgotnosc w %, re - poziom deszczu[false oznacza brak]");
