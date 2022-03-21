@@ -149,23 +149,35 @@ uint32_t lastLoopTime = 0;
 uint8_t hopCount = 0;
 uint16_t loopCount = 0;
 unsigned int cnt = 0;
+int rssiUstalone = -60;
+unsigned int rssiZakres = 4;
+bool zlapane = false;
+unsigned int rssiblad = 0;
+
 
 void loop() {
   timer.tick();
   if (Serial.available() > 0) loopCount = 0; // if we receive anything while sending LOOP packets, stop the stream
   sendLoopPacket(); 
 
-  if (oneMinutePassed) clearAlarmInterrupt();
+  //if (oneMinutePassed) clearAlarmInterrupt();
 
   sCmd.readSerial(); // Process serial commands
 
   int16_t currPeriod = millis()/POLL_INTERVAL;
+  czas = millis()%20000;
 
   if (currPeriod != lastPeriod) {
     lastPeriod=currPeriod;
   }
 
  if (radio.receiveDone()) {
+
+   if(radio.RSSI >= rssiUstalone-rssiZakres && radio.RSSI <=rssiUstalone+rssiZakres){
+     zlapane = true;
+     rssiUstalone = radio.RSSI;
+     rssiZakres = 5;
+     rssiblad =0;
     packetStats.packetsReceived++;
     uint16_t crc = radio.crc16_ccitt(radio.DATA, 6);
     if ((crc == (word(radio.DATA[6], radio.DATA[7]))) && (crc != 0)) {
@@ -179,9 +191,32 @@ void loop() {
     }
 
     // Whether CRC is right or not, we count that as reception and hop.
-    lastRxTime = millis();
+   
+   }
+   else if(zlapane== true && czas>=15000 &&  czas<=15000 && rssiblad <=4)
+  {
+    rssiZakres+=1;
+    rssiblad++;
+  }
+  else if(czas<=18000 &&  czas>=18000 && rssiblad >4 )
+  {
+    zlapane = false;
+    rssiZakres+=2;
+    Serial.println(" zakres ");
+    Serial.print(rssiZakres);
+    Serial.print(" srodek ");
+    Serial.print(rssiUstalone);
+  }
+  else if(czas<=18000 &&  czas>=18000)
+  {
+    rssiblad++;
+  }
+  
+   lastRxTime = millis();
     radio.hop();
     hopCount++;
+   
+   
   }
   
 

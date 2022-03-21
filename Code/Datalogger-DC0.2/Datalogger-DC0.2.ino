@@ -79,8 +79,8 @@ int const GreenDot_Table[256] =
     strictly necessary
 */
 int csPin = 10;
-int resetPin = 8;
-int writeProtectPin = 7;
+// int resetPin = 8;
+// int writeProtectPin = 7;
 
 int delayTime = 500; //half-second typical delay
 uint8_t ERRORS;
@@ -101,7 +101,7 @@ void setup(){
   delay(delayTime*4); //wait 2 seconds before continuing
 
   //Begin communication tests
-  Serial.println("Attempting communication with DataFlash...");
+  Serial.println("Attempting communication..");
  
   //First we get the current status register
   uint8_t STATUS;
@@ -135,7 +135,7 @@ void setup(){
   delay(delayTime); 
  if(MANUFACTURER_DEVICE_ID[1]!=0x25)
  {
-   Serial.println("Brak połaczenia z pamięcią");
+   Serial.println("Brak polaczenia z Flash");
    exit(0);
  }
  
@@ -154,7 +154,7 @@ void setup(){
  
   //We need to read the entire 128 bytes in one shot. 
   //Start with verifying the first 64 bytes are unwritten
-  Serial.println("Reading Security Register...");
+  Serial.println("Reading ...");
   digitalWrite(csPin,LOW);
   SPI.transfer(DATAFLASH_READ_SECURITY_REGISTER);
   SPI.transfer(0x00);//dummy 1
@@ -163,7 +163,7 @@ void setup(){
 
  
 
-  Serial.println("Checking that Programmable Register is empty (0xFF)...");
+  Serial.println("Checking if is empty (0xFF)...");
   for (int i=0;i<64;i++){
     uint8_t CURRENT_BYTE;
     CURRENT_BYTE=SPI.transfer(0x00);
@@ -180,7 +180,7 @@ void setup(){
   }
    
   // Read Factory programmed 64 Byte security Register
-  Serial.println("Reading Factory-programmed Security Register..,.");
+  Serial.println("Reading Factory-programmed Register..,.");
   for(int i=0;i<64;i++){
     int byteNumber = i+64;
     Serial.print(byteNumber);
@@ -192,7 +192,7 @@ void setup(){
   delay(delayTime);
  
   // Calculate User-programmable security bytes
-  Serial.println("Calculating User-Programmable Security Register...");
+  Serial.println("Calculating User-Programmable Register...");
   // The first 3 bytes can be anything.  Davis uses it as a serial number
   USER_SECURITY_REGISTER[0]=0x01; //I just used 1, 2, 3...  Change as you like
   USER_SECURITY_REGISTER[1]=0x02;
@@ -217,11 +217,11 @@ void setup(){
   }
   delay(delayTime);
 
-   sCmd.addCommand("PROG", programChip);
+  sCmd.addCommand("PROG", programChip);
   sCmd.addCommand("CHECK", checkChip);
   sCmd.addCommand("REFRESH", chipErrors);
-  sCmd.setDefaultHandler(unrecognized);
-  sCmd.addCommand("HELP", help);
+  //sCmd.setDefaultHandler(unrecognized);
+  //sCmd.addCommand("HELP", help);
  
   //Uncomment (remove the /* at the start and */ at the end) the lines
   //below to program the Security Register
@@ -308,6 +308,7 @@ void setup(){
 void loop(){
 
 sCmd.readSerial(); 
+delay(50);
 
 }
 
@@ -318,7 +319,7 @@ uint8_t getBit(uint8_t bits, uint8_t pos){
 
 void programChip()
 {
-if(ERRORS = 0){
+if(ERRORS == 0){
  boolean wait = true; //Make sure chip isn't busy
   while (wait == true){
     uint8_t STATUSREG;
@@ -334,7 +335,7 @@ if(ERRORS = 0){
   }
 
   digitalWrite(csPin,LOW);
-  Serial.println("Programming security register...");
+  Serial.println("Programming register...");
   SPI.transfer(DATAFLASH_PROGRAM_SECURITY_REGISTER_0);
   SPI.transfer(DATAFLASH_PROGRAM_SECURITY_REGISTER_1);
   SPI.transfer(DATAFLASH_PROGRAM_SECURITY_REGISTER_2);
@@ -377,7 +378,7 @@ if(ERRORS = 0){
   boolean writeOk = true;
   for (int i=0;i<64;i++){
     if (USER_SECURITY_REGISTER[i]!=VERIFY_SECURITY_REGISTER[i]){
-        Serial.print("Error at security register ");
+        Serial.print("Error at register ");
         Serial.print(i);
         Serial.print(": Should be 0x");
         Serial.print(USER_SECURITY_REGISTER[i],HEX);
@@ -388,23 +389,23 @@ if(ERRORS = 0){
     }
   }
   if (writeOk == true){
-      Serial.println("Looks like everything went great!");
+      Serial.println("verything went great!");
    }
    else{
-      Serial.println("Oh no!  There was a problem programming the security register!!");
+      Serial.println("Oh no! problem programming the register!!");
    }
 
 }
 else
 {
-  Serial.print("Chip wydaje się zaprogramowany!!!");
+  Serial.print("Chip zaprogramowany!!!");
 }
 }
 
 void checkChip()
 {
 
-    Serial.println("Reading Security Register...");
+    Serial.println("Reading Register...");
   digitalWrite(csPin,LOW);
   SPI.transfer(DATAFLASH_READ_SECURITY_REGISTER);
   SPI.transfer(0x00);//dummy 1
@@ -446,10 +447,10 @@ for (int i=0;i<64;i++){
 }
 digitalWrite(csPin,HIGH);
 }
-
+/*
 void unrecognized()
 {
-  Serial.println("Nieznana komenda - wpisz 'HELP' aby wyswietlic mozliwe komendy"); 
+  //Serial.println("Nieznana komenda - wpisz 'HELP' aby wyswietlic mozliwe komendy"); 
 
 }
 
@@ -460,8 +461,8 @@ Serial.print("DLOGGER v");
 Serial.println(wersja); 
 Serial.println("spis komend:"); 
 
- Serial.println("PROG - po sprawdzeniu co najmniej 3 razy programuje chip. Mozna tylko raz zaprogramowac tylko raz!!!!");
- Serial.println("CHECK - pokazuje jakie wartości są wpisane w rejestrze programowalnym , domyslnie jest OxFF pusty niezaprogramowany");
- Serial.println("REFRESH - sprawdza czy chip nadaje się do zaprogramowania");
+ //Serial.println("PROG - po sprawdzeniu co najmniej 3 razy programuje chip. Mozna tylko raz zaprogramowac tylko raz!!!!");
+ //Serial.println("CHECK - pokazuje jakie wartości są wpisane w rejestrze programowalnym , domyslnie jest OxFF pusty niezaprogramowany");
+ //Serial.println("REFRESH - sprawdza czy chip nadaje się do zaprogramowania");
 
-}
+}*/
