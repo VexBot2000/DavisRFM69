@@ -143,12 +143,17 @@ void setup() {
 #define VP2P_RAIN           0xE // rain bucket tips counter
  */
 long czas = 0;
+uint32_t czas2 = 0;
 long lastPeriod = -1;
+unsigned long czas_od = millis();
+unsigned long stary_czas = millis();
+unsigned long czas_pakietu = 0;
 uint32_t lastRxTime = 0;
 uint32_t lastLoopTime = 0;
 uint8_t hopCount = 0;
 uint16_t loopCount = 0;
 unsigned int cnt = 0;
+bool znaleziono = false;
 
 void loop() {
   timer.tick();
@@ -164,48 +169,79 @@ void loop() {
   if (currPeriod != lastPeriod) {
     lastPeriod=currPeriod;
   }
-
+ czas2=millis();
  if (radio.receiveDone()) {
     packetStats.packetsReceived++;
-   uint16_t crc = radio.crc16_ccitt(radio.DATA, 6);
+    uint16_t crc = radio.crc16_ccitt(radio.DATA, 6);
     if ((crc == (word(radio.DATA[6], radio.DATA[7]))) && (crc != 0)) {
       if (strmon) printStrm();
-     
+      czas_pakietu = millis();
+      czas_od = (czas_pakietu-stary_czas);
+    Serial.println(" czas pakietu ");
+    Serial.print(czas_od);
+    stary_czas = millis();
+
+    znaleziono = true;
+    
+      radio.hop();
+     Serial.print(" skok na kanal ");
+    Serial.print(radio.CHANNEL);
       packetStats.receivedStreak++;
       hopCount = 1;
+      lastRxTime = millis();
     } 
-    else {
+    else if (czas2%800 == 0) {
       packetStats.crcErrors++;
-      packetStats.receivedStreak = 0;      
+      packetStats.receivedStreak = 0;    
+       
     }
 
     // Whether CRC is right or not, we count that as reception and hop.
-    lastRxTime = millis();
     
-   
-    radio.hop();
+    
   
-    hopCount++;
+    //hopCount++; 
+    
   }
   
-
+  czas2=millis();
 
   // If a packet was not received at the expected time, hop the radio anyway
   // in an attempt to keep up.  Give up after 25 failed attempts.  Keep track
   // of packet stats as we go.  I consider a consecutive string of missed
   // packets to be a single resync.  Thx to Kobuki for this algorithm.
-  if ((hopCount > 0) && ((millis() - lastRxTime) > (hopCount * PACKET_INTERVAL + 200))) {
+  if (znaleziono == true) {
+    uint32_t czas_pakietu1 = czas2 - lastRxTime;
+    uint32_t czas_bledu= (hopCount * PACKET_INTERVAL)+30;
+   // Serial.println(" czas ");
+    //Serial.println(czas_pakietu1);
+   // Serial.println(czas_bledu);
+    
+    if(czas_pakietu1 >= czas_bledu)
+    {
     packetStats.packetsMissed++;
+    hopCount++;
     if (hopCount == 1) packetStats.numResyncs++;
-    if (++hopCount > 25) hopCount = 0;
+    if (hopCount > 5){
+      hopCount = 0;
+      znaleziono = false;
+        radio.CHANNEL = 0;
+    packetStats.crcErrors = 0;
+    packetStats.packetsMissed = 0;
+     radio.setChannel(0);
+      Serial.print(" Reset kanalu ");
+    }
     radio.hop();
-   
+     Serial.print(" skok na kanal po braku respondu ");
+    Serial.print(radio.CHANNEL);
+    }
   }
-
-  if(packetStats.crcErrors >=3){
+  else if(hopCount == 0 && znaleziono == false){
     radio.CHANNEL = 0;
     packetStats.crcErrors = 0;
-   
+    packetStats.packetsMissed = 0;
+     radio.setChannel(0);
+    //Serial.print(" Reset kanalu ");
   }
 }
 //koniec void loop
@@ -645,13 +681,13 @@ Serial.println("spis komend:");
 
   Serial.println("RESET"); 
   Serial.println("LOOP - Send the loop data"); 
-  Serial.println("RXCHECK - Receiver Stats check"); 
-  Serial.println("SETPER - Set archive interval period"); 
+ // Serial.println("RXCHECK - Receiver Stats check"); 
+ // Serial.println("SETPER - Set archive interval period"); 
   Serial.println("STRMOFF - Disable printing of received packet data");
   Serial.println("STRMON - Enable printing of received packet data");
   Serial.println("TEST - Echo's TEST");
-  Serial.println("EEBRD - EEPROM Read");
-  Serial.println("DMPAFT - Download archive records after date:time specified");
+ //Serial.println("EEBRD - EEPROM Read");
+ // Serial.println("DMPAFT - Download archive records after date:time specified");
   Serial.println("INFO - Analizuje ostatnio odebrany pakiet");
   Serial.println("ALLREG - wyswietla wszytskie stany rejestrow");
  // Serial.println("Oznaczenia danych: ws - predkosc wiatru [mile/h],wd - kierunek wiatru w stopniach,bat - stan baterii (1 brak lub rozładowana,a 0 naładowana)\nta - temperatura w stopniach celsjusza,sr - promieniowanie sloneczne w W/m2[none - oznacza brak czujnika],uV - index uV [none - oznacza brak czujnika]\nrh - wilgotnosc w %, re - poziom deszczu[false oznacza brak]");

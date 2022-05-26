@@ -167,10 +167,10 @@ void loop() {
 
  if (radio.receiveDone()) {
     packetStats.packetsReceived++;
-   uint16_t crc = radio.crc16_ccitt(radio.DATA, 6);
+    Serial.print(" ws ");
+  Serial.print(loopData.windSpeed);nt16_t crc = radio.crc16_ccitt(radio.DATA, 6);
     if ((crc == (word(radio.DATA[6], radio.DATA[7]))) && (crc != 0)) {
       if (strmon) printStrm();
-     
       packetStats.receivedStreak++;
       hopCount = 1;
     } 
@@ -182,9 +182,10 @@ void loop() {
     // Whether CRC is right or not, we count that as reception and hop.
     lastRxTime = millis();
     
-   
+    czas_od = lastRxTime/1000;
+    Serial.println(" czas pakietu ");
+    Serial.print(czas_od);
     radio.hop();
-  
     hopCount++;
   }
   
@@ -199,13 +200,11 @@ void loop() {
     if (hopCount == 1) packetStats.numResyncs++;
     if (++hopCount > 25) hopCount = 0;
     radio.hop();
-   
   }
 
   if(packetStats.crcErrors >=3){
     radio.CHANNEL = 0;
     packetStats.crcErrors = 0;
-   
   }
 }
 //koniec void loop
