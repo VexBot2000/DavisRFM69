@@ -69,7 +69,7 @@ struct DaneStacji{
   int8_t czas_pakietu = 0;
   int8_t czas = 0;
   bool znalezione = false;
-  uint8_t  ilosc_hop = 0;
+  uint8_t  ilosc_hop = 1;
   unsigned long czas_ostaniego_pakietu = 0;
   float  outsideTemperature; // Outside temperature in tenths of degrees
   uint8_t   windSpeed;          // Wind speed in miles per hour 
@@ -225,7 +225,9 @@ void loop() {
           for(int i =0;i<7;i++){
             tablica_czasu[(wskaznik_czasu-i)%56]=1;
           }
+          ilosc_znalezionych++;
           break;
+          
         case 1:
           if(Stacja0.znalezione == false && wskaznik_czasu >= (Stacja0.czas-7)%56){
              uint8_t roznica = Stacja0.czas - wskaznik_czasu;
@@ -265,7 +267,7 @@ void loop() {
           if (strmon) printStrm(Stacja0);
           Stacja0.czas = (wskaznik_czasu + Stacja0.czas_pakietu)%56;
           tablica_czasu[Stacja0.czas] = 2;
-          Stacja0.ilosc_hop = 0;
+          Stacja0.ilosc_hop = 1;
           }
           else if(Stacja0.znalezione == true && Stacja0.czas == wskaznik_czasu ){
               Stacja0.czas_ostaniego_pakietu = millis();
@@ -273,7 +275,7 @@ void loop() {
               if (strmon) printStrm(Stacja0);
                Stacja0.czas = (wskaznik_czasu + Stacja0.czas_pakietu)%56;
               tablica_czasu[Stacja0.czas] = Stacja0.kanal_radio;
-               Stacja0.ilosc_hop = 0;
+               Stacja0.ilosc_hop = 1;
           }
           else{
             Stacja1.kanal_radio = radio.CHANNEL;
@@ -328,7 +330,8 @@ void loop() {
     break;
     case 1:
       uint32_t czas_pakietu1 = czas2 - Stacja0.czas_ostaniego_pakietu;
-      if(Stacja0.znalezione == true && czas_pakietu1 > (Stacja0.czas_pakietu*51 + 10)){
+      uint32_t czas_bledu= (hopCount * 51 *Stacja0.czas_pakietu)+10;
+      if(Stacja0.znalezione == true && czas_pakietu1 > czas_bledu){
 
         Stacja0.ilosc_hop++;
         if(Stacja0.ilosc_hop>5){
@@ -337,7 +340,7 @@ void loop() {
          tablica_czasu[Stacja0.czas] = Stacja0.kanal_radio;
            Serial.print(" Reset kanalu ");
           //Serial.print(Stacja0.kanal_radio);
-          Stacja0.czas_ostaniego_pakietu = millis();
+          //Stacja0.czas_ostaniego_pakietu = millis();
         }
         else{
          Stacja0.kanal_radio = (radio.CHANNEL+1)%5;
@@ -345,7 +348,7 @@ void loop() {
          tablica_czasu[Stacja0.czas] = Stacja0.kanal_radio;
           Serial.print(" skok na kanal po braku respondu ");
           Serial.print(Stacja0.kanal_radio);
-          Stacja0.czas_ostaniego_pakietu = millis();
+         // Stacja0.czas_ostaniego_pakietu = millis();
         }
 
       }
