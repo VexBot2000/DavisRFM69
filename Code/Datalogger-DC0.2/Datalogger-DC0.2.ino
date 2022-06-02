@@ -59,6 +59,7 @@ int const GreenDot_Table[256] =
 
 /*  Pin connection definitions.  Pin connections between Arduino and Dataflash
     should be as follows:
+    
     AT45DB011D  ------------  ARDUINO
     1 (SI/MOSI) ------------  Pin 11
     2 (SCK)     ------------  Pin 13
@@ -392,7 +393,7 @@ if(ERRORS == 0){
       Serial.println("verything went great!");
    }
    else{
-      Serial.println("Oh no! problem programming the register!!");
+      Serial.println("problem programming register!!");
    }
 
 }

@@ -69,6 +69,7 @@ void rtcInterrupt(void) {
 void(* resetFunc) (void) = 0;
 
 void setup() {
+ 
   Serial.begin(SERIAL_BAUD);
   Serial.println("Serial connection ON");
   delay(10);
@@ -84,6 +85,7 @@ void setup() {
   // Set up DS3231 real time clock on Moteino INT1
   timer.every(10000000, rtcInterrupt); //That makes it run better... right? Davis console supposedly has it set to "60000000"
   // Initialize the flash chip on the Moteino
+   loopData.rainRate = 0.0;
   if (!flash.initialize()) {
     Serial.println(F("SPI Flash Init Failed. Is chip present and correct manufacturer specified in constructor?"));
     while (1) { }
@@ -177,15 +179,15 @@ void loop() {
       if (strmon) printStrm();
       czas_pakietu = millis();
       czas_od = (czas_pakietu-stary_czas);
-    Serial.println(" czas pakietu ");
-    Serial.print(czas_od);
+    //Serial.println(" czas pakietu ");
+   //Serial.print(czas_od);
     stary_czas = millis();
 
     znaleziono = true;
     
       radio.hop();
-     Serial.print(" skok na kanal ");
-    Serial.print(radio.CHANNEL);
+    // Serial.print(" skok na kanal ");
+    //Serial.print(radio.CHANNEL);
       packetStats.receivedStreak++;
       hopCount = 1;
       lastRxTime = millis();
@@ -232,8 +234,8 @@ void loop() {
       Serial.print(" Reset kanalu ");
     }
     radio.hop();
-     Serial.print(" skok na kanal po braku respondu ");
-    Serial.print(radio.CHANNEL);
+    // Serial.print(" skok na kanal po braku respondu ");
+   // Serial.print(radio.CHANNEL);
     }
   }
   else if(hopCount == 0 && znaleziono == false){
@@ -241,7 +243,7 @@ void loop() {
     packetStats.crcErrors = 0;
     packetStats.packetsMissed = 0;
      radio.setChannel(0);
-    //Serial.print(" Reset kanalu ");
+   // Serial.print(" Reset kanalu ");
   }
 }
 //koniec void loop
@@ -289,14 +291,22 @@ void processPacket() {
   }
      if (test == VP2P_RAIN) //INTESYWNOSC DESZCZU
   {
-    loopData.rainRate = (float)(word(radio.DATA[3]));
-    uint8_t z = (uint8_t)(word(radio.DATA[5]));
+    float z  = (float)(word(radio.DATA[3]));
+   // uint8_t z = (uint8_t)(word(radio.DATA[5]));
     Serial.print(" re ");  
-    if (z == 41)
+    if (z > loopData.rainRate)
     {
     Serial.print(" true ");
     Serial.print(" ra ");
-    Serial.print(loopData.rainRate);
+    Serial.print(z - loopData.rainRate);
+    loopData.rainRate = z;
+    }
+    else if(z < loopData.rainRate)
+    {
+    Serial.print(" true ");
+    Serial.print(" ra ");
+    Serial.print(255.0 - loopData.rainRate + z );
+    loopData.rainRate = z;
     }
     else
       {

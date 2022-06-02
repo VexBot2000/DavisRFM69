@@ -107,7 +107,7 @@ void setup() {
 #endif
   // Initialize the loop data array
   memcpy(&loopData, &loopInit, sizeof(loopInit));
-
+    loopData.rainRate = 0.0;
 
   // Set up DS3231 real time clock on Moteino INT1
   //timer.every(10000000, rtcInterrupt); //That makes it run better... right? Davis console supposedly has it set to "60000000"
@@ -184,7 +184,15 @@ uint8_t hopCount = 0;
 uint16_t loopCount = 0;
 unsigned int cnt = 0;
 bool znaleziono = false;
-int8_t tablica_czasu[56]; //2850 ms na 50 ms to 57 ramek czasowych
+int8_t tablica_czasu[56]={
+  0,0,0,0,0,0,0,0,0,0,
+  0,0,0,0,0,0,0,0,0,0,
+  0,0,0,0,0,0,0,0,0,0,
+  0,0,0,0,0,0,0,0,0,0,
+  0,0,0,0,0,0,0,0,0,0,
+  0,0,0,0,0
+  
+  }; //2850 ms na 50 ms to 57 ramek czasowych
 int8_t wskaznik_czasu = 0;
 int8_t ilosc_znalezionych = 0;
 
@@ -197,11 +205,21 @@ void loop() {
 
   sCmd.readSerial(); // Process serial commands
 
-  if(millis()%51 <=1){
+  if((millis()%50 ==1) && (wskaznik_czasu>0) && (wskaznik_czasu<55)){
+    wskaznik_czasu++;
+   // if(wskaznik_czasu>55)wskaznik_czasu=0;
+    radio.CHANNEL = tablica_czasu[wskaznik_czasu];
+    radio.setChannel(tablica_czasu[wskaznik_czasu]);
+    Serial.print(" ");
+    Serial.print(tablica_czasu[wskaznik_czasu]);
+  }
+  else if((millis()%25 ==1) && ((wskaznik_czasu==0) || (wskaznik_czasu==55)) ){
     wskaznik_czasu++;
     if(wskaznik_czasu>55)wskaznik_czasu=0;
     radio.CHANNEL = tablica_czasu[wskaznik_czasu];
     radio.setChannel(tablica_czasu[wskaznik_czasu]);
+     Serial.print(" ");
+    Serial.print(tablica_czasu[wskaznik_czasu]);
   }
   
 
@@ -231,7 +249,7 @@ void loop() {
         case 1:
           if(Stacja0.znalezione == false && wskaznik_czasu >= (Stacja0.czas-7)%56){
              uint8_t roznica = Stacja0.czas - wskaznik_czasu;
-          switch(wskaznik_czasu){
+          switch(roznica){
             case 0:
             Stacja0.ID_stacji = 0;
             Stacja0.czas_pakietu = 50;
@@ -443,15 +461,22 @@ void processPacket(struct DaneStacji Stacja) {
   }
      if (test == VP2P_RAIN) //INTESYWNOSC DESZCZU
   {
-    loopData.rainRate = (float)(word(radio.DATA[3]));
-    Stacja.rainRate = loopData.rainRate;
-    uint8_t z = (uint8_t)(word(radio.DATA[5]));
+   float z  = (float)(word(radio.DATA[3]));
+   // uint8_t z = (uint8_t)(word(radio.DATA[5]));
     Serial.print(" re ");  
-    if (z == 41)
+    if (z > loopData.rainRate)
     {
     Serial.print(" true ");
     Serial.print(" ra ");
-    Serial.print(loopData.rainRate);
+    Serial.print(z - loopData.rainRate);
+    loopData.rainRate = z;
+    }
+    else if(z < loopData.rainRate)
+    {
+    Serial.print(" true ");
+    Serial.print(" ra ");
+    Serial.print(255.0 - loopData.rainRate + z );
+    loopData.rainRate = z;
     }
     else
       {
