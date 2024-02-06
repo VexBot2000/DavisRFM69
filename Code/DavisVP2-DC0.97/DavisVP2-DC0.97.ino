@@ -26,7 +26,7 @@
 // http://forum.arduino.cc/index.php?PHPSESSID=uakeh64e6f5lb3s35aunrgfjq1&topic=102182.msg766625#msg766625
 #undef PROGMEM
 #define PROGMEM __attribute__(( section(".progmem.data") ))
-#define wersja 0.95
+#define wersja 0.96
 
 
 // NOTE: *** One of DAVIS_FREQS_US, DAVIS_FREQS_EU, DAVIS_FREQS_AU, or
@@ -55,81 +55,46 @@ DavisRFM69 radio;
  #define FLASH_SS      8 
  SPIFlash flash(FLASH_SS, 0xEF30);
 
-//Timer<1, micros> timer;
+Timer<1, micros> timer;
 
 SerialCommand sCmd;
 
 LoopPacket loopData;
 volatile bool oneMinutePassed = false;
-
-struct DaneStacji{
-
-  uint8_t ID_stacji;
-  int8_t kanal_radio;
-  uint8_t czas_pakietu = 0;
-  int8_t czas = 0;
-  bool znalezione = false;
-  uint8_t  ilosc_hop = 1;
-  unsigned long czas_ostaniego_pakietu = 0;
-  float  outsideTemperature; // Outside temperature in tenths of degrees
-  uint8_t   windSpeed;          // Wind speed in miles per hour 
-  uint16_t  windDirection;      // Wind direction from 1 to 360 degrees (0 = no wind data)
-  uint8_t   outsideHumidity;       // Outside relative humidity in %.
-  uint16_t  rainRate;          // Rain rate as number of rain clicks per hour (e.g 256 = 2.56 in/hr)
-  float   uV;                // UV index
-  float  solarRadiation;    // Solar radiation in Watts/m^2
-  uint8_t   transmitterBatteryStatus;  // Transmitter battery status (0 or 1)
-
-};
-  struct DaneStacji Stacja0;
-  struct DaneStacji Stacja1;
-  struct DaneStacji Stacja2;
-  struct DaneStacji Stacja3;
-  struct DaneStacji Stacja4;
-  struct DaneStacji Stacja5;
-  struct DaneStacji Stacja6;
-
+/*
 void rtcInterrupt(void) {
   oneMinutePassed = true;
-}
-
+}*/
+ bool rtcInterrupt(void) {
+    oneMinutePassed = true;
+    return true;
+  }
 void(* resetFunc) (void) = 0;
 
 void setup() {
  
   Serial.begin(SERIAL_BAUD);
   Serial.println("Serial connection ON");
-  delay(10);
-  radio.initialize();
-  radio.setChannel(0);  // Frequency / Channel *not* set in initialization. Do it right after.
-#ifdef IS_RFM69HW
-  radio.setHighPower(); // Uncomment only for RFM69HW!
-#endif
-  // Initialize the loop data array
-  memcpy(&loopData, &loopInit, sizeof(loopInit));
-    loopData.rainRate = 0.0;
-
-  // Set up DS3231 real time clock on Moteino INT1
-  //timer.every(10000000, rtcInterrupt); //That makes it run better... right? Davis console supposedly has it set to "60000000"
-  // Initialize the flash chip on the Moteino
-  
-
-  if (!flash.initialize()) {
-    Serial.println(F("SPI Flash Init Failed. Is chip present and correct manufacturer specified in constructor?"));
-    while (1) { }
-  }
-  
- 
-  // Setup callbacks for SerialCommand commands
-  sCmd.addCommand("LOOP", cmdLoop);         // Send the loop data
-  sCmd.addCommand("RXCHECK", cmdRxcheck);   // Receiver Stats check
-  sCmd.addCommand("SETPER", cmdSetper);     // Set archive interval period
-  sCmd.addCommand("STRMOFF", cmdStrmoff);   // Disable printing of received packet data
+    delay(10);
+    radio.initialize();
+    radio.setChannel(0);  // Frequency / Channel *not* set in initialization. Do it right after.
+  #ifdef IS_RFM69HW
+    radio.setHighPower(); // Uncomment only for RFM69HW!
+  #endif
+    // Initialize the loop data array
+   
+      timer.every(10000000, rtcInterrupt); //That makes it run better... right? Davis console supposedly has it set to "60000000"
+   
+    // Setup callbacks for SerialCommand commands
+    sCmd.addCommand("LOOP", cmdLoop);         // Send the loop data
+    sCmd.addCommand("RXCHECK", cmdRxcheck);   // Receiver Stats check
+    sCmd.addCommand("SETPER", cmdSetper);     // Set archive interval period
+    sCmd.addCommand("STRMOFF", cmdStrmoff);   // Disable printing of received packet data
   sCmd.addCommand("STRMON", cmdStrmon);     // Enable printing of received packet data
   sCmd.addCommand("TEST", cmdTest);         // Echo's "TEST"
   sCmd.setDefaultHandler(cmdUnrecognized);  // Handler for command that isn't matched
   sCmd.setNullHandler(cmdWake);             // Handler for an empty line to wake the simulated console
-  sCmd.addCommand("EEBRD", cmdEebrd);       // EEPROM Read
+ // sCmd.addCommand("EEBRD", cmdEebrd);       // EEPROM Read
   sCmd.addCommand("DMPAFT", cmdDmpaft); // Download archive records after date:time specified
   sCmd.addCommand("INFO", processPacket);
   sCmd.addCommand("ALLREG", cmdReadRegs);// Opcja debugowania - wyświetla wszytskie stany rejestrów
@@ -184,44 +149,15 @@ uint8_t hopCount = 0;
 uint16_t loopCount = 0;
 unsigned int cnt = 0;
 bool znaleziono = false;
-uint8_t tablica_czasu[58]={
-  0,0,0,0,0,0,0,0,0,0,
-  0,0,0,0,0,0,0,0,0,0,
-  0,0,0,0,0,0,0,0,0,0,
-  0,0,0,0,0,0,0,0,0,0,
-  0,0,0,0,0,0,0,0,0,0,
-  0,0,0,0,0,0,0,0
-  
-  }; //2850 ms na 50 ms to 57 ramek czasowych
-int8_t wskaznik_czasu = 0;
-int8_t ilosc_znalezionych = 0;
 
 void loop() {
- // timer.tick();
+  timer.tick();
   if (Serial.available() > 0) loopCount = 0; // if we receive anything while sending LOOP packets, stop the stream
   sendLoopPacket(); 
 
-  //if (oneMinutePassed) clearAlarmInterrupt();
+  if (oneMinutePassed) clearAlarmInterrupt();
 
   sCmd.readSerial(); // Process serial commands
-
-  if((millis()%50 ==0) && (wskaznik_czasu>0) && (wskaznik_czasu<57)){
-    wskaznik_czasu++;
-   // if(wskaznik_czasu>55)wskaznik_czasu=0;
-    radio.CHANNEL = tablica_czasu[wskaznik_czasu];
-    radio.setChannel(tablica_czasu[wskaznik_czasu]);
-    //Serial.print(" ");
-   // Serial.print(tablica_czasu[wskaznik_czasu]);
-  }
-  else if((millis()%25 ==0) && ((wskaznik_czasu==0) || (wskaznik_czasu==57)) ){
-    wskaznik_czasu++;
-    if(wskaznik_czasu>57)wskaznik_czasu=0;
-    radio.CHANNEL = tablica_czasu[wskaznik_czasu];
-    radio.setChannel(tablica_czasu[wskaznik_czasu]);
-    // Serial.print(" ");
-   // Serial.print(tablica_czasu[wskaznik_czasu]);
-  }
-  
 
   int16_t currPeriod = millis()/POLL_INTERVAL;
 
@@ -231,138 +167,23 @@ void loop() {
  czas2=millis();
  if (radio.receiveDone()) {
     packetStats.packetsReceived++;
-    radio._packetReceived =false;
     uint16_t crc = radio.crc16_ccitt(radio.DATA, 6);
     if ((crc == (word(radio.DATA[6], radio.DATA[7]))) && (crc != 0)) {
-      switch(ilosc_znalezionych){
-        case 0:
-          Stacja0.kanal_radio = radio.CHANNEL;
-          if (strmon) printStrm(Stacja0);
-           //processPacket(Stacja0);
-          Stacja0.czas = wskaznik_czasu;
-          Serial.println(Stacja0.czas);
-          if(Stacja0.czas<7)
-          {
-            for(int i =0;i<8;i++){
-              tablica_czasu[wynik(wskaznik_czasu,i)]=1;
-              Serial.println(i);
-              Serial.print(" ");
-              Serial.print(tablica_czasu[wskaznik_czasu]);
-           }
-          }
-          else(Stacja0.czas==57)
-          {   
-              tablica_czasu[0]=1;
-              for(int i =0;i<7;i++){
-              tablica_czasu[wynik(wskaznik_czasu,i)]=1;
-              Serial.println(i);
-              Serial.print(" ");
-              Serial.print(tablica_czasu[wskaznik_czasu]);
-           }
-          }
-          else
-          {
-             
-          for(int i =0;i<7;i++){
-              tablica_czasu[wynik(wskaznik_czasu,i)]=1;
-              Serial.println(i);
-              Serial.print(" ");
-              Serial.print(tablica_czasu[wskaznik_czasu]);
-           }
-          }
-          ilosc_znalezionych++;
-          break;
-          
-        case 1:
-          if(Stacja0.znalezione == false && wskaznik_czasu >= wynik(Stacj0.czas,7)){
-             uint8_t roznica = wynik(Stacj0.czas,wskaznik_czasu);
-          switch(roznica){
-            case 0:
-            Stacja0.ID_stacji = 0;
-            Stacja0.czas_pakietu = 50;
-            break;
-            case 1:
-            Stacja0.ID_stacji = 1;
-            Stacja0.czas_pakietu = 51;
-            break;
-            case 2:
-            Stacja0.ID_stacji = 2;
-            Stacja0.czas_pakietu = 52;
-            break;
-            case 3:
-            Stacja0.ID_stacji = 3;
-            Stacja0.czas_pakietu = 53;
-            break;
-            case 4:
-            Stacja0.ID_stacji = 4;
-            Stacja0.czas_pakietu = 54;
-            break;
-            case 5:
-            Stacja0.ID_stacji = 5;
-            Stacja0.czas_pakietu = 55;
-            break;
-            case 6:
-            Stacja0.ID_stacji = 6;
-            Stacja0.czas_pakietu = 56;
-            break;
-          }
-          Stacja0.znalezione = true;
-          Stacja0.czas_ostaniego_pakietu = millis();
-          Stacja0.kanal_radio = radio.CHANNEL;
-          if (strmon) printStrm(Stacja0);
-          Stacja0.czas = (wskaznik_czasu + Stacja0.czas_pakietu)%58;
-          if(Stacja0.czas== 0 || Stacja0.czas==57)
-          {
-              tablica_czasu[0] = 2;
-              tablica_czasu[57] = 2;       
-          }
-          else
-          {
-          tablica_czasu[Stacja0.czas] = 2;
-           }
-          Stacja0.ilosc_hop = 1;
-          }
-          else if(Stacja0.znalezione == true && Stacja0.czas == wskaznik_czasu ){
-              Stacja0.czas_ostaniego_pakietu = millis();
-              Stacja0.kanal_radio = (radio.CHANNEL+1)%5;
-              if (strmon) printStrm(Stacja0);
-               Stacja0.czas = (wskaznik_czasu + Stacja0.czas_pakietu)%58;
-              tablica_czasu[Stacja0.czas] = Stacja0.kanal_radio;
-               Stacja0.ilosc_hop = 1;
-          }
-          else if
-          else{
-            Stacja1.kanal_radio = radio.CHANNEL;
-          if (strmon) printStrm(Stacja1);
-           //processPacket(Stacja0);
-          Stacja1.czas = wskaznik_czasu;
-          for(int i =0;i<7;i++){
-            tablica_czasu[wynik(wskaznik_czasu,i)]=1;
-          }
-
-          }
-
-
-        break;
-        
-
-      }
-
-      
+      if (strmon) printStrm();
       czas_pakietu = millis();
       czas_od = (czas_pakietu-stary_czas);
-       Serial.println(" czas pakietu ");
-    Serial.print(czas_od);
+    //Serial.println(" czas pakietu ");
+   //Serial.print(czas_od);
     stary_czas = millis();
-    
+
     znaleziono = true;
-    /*
+    
       radio.hop();
-     Serial.print(" skok na kanal ");
-    Serial.print(radio.CHANNEL);
+    // Serial.print(" skok na kanal ");
+    //Serial.print(radio.CHANNEL);
       packetStats.receivedStreak++;
       hopCount = 1;
-      lastRxTime = millis();*/
+      lastRxTime = millis();
     } 
     else if (czas2%800 == 0) {
       packetStats.crcErrors++;
@@ -379,40 +200,11 @@ void loop() {
   }
   
   czas2=millis();
-  switch(ilosc_znalezionych){
-    case 0:
-    break;
-    case 1:
-      uint32_t czas_pakietu1 = czas2 - Stacja0.czas_ostaniego_pakietu;
-      uint32_t czas_bledu= (hopCount * 51 *Stacja0.czas_pakietu)+10;
-      if(Stacja0.znalezione == true && czas_pakietu1 > czas_bledu){
 
-        Stacja0.ilosc_hop++;
-        if(Stacja0.ilosc_hop>5){
-        Stacja0.kanal_radio = 0;
-         Stacja0.czas = (wskaznik_czasu + Stacja0.czas_pakietu)%56;
-         tablica_czasu[Stacja0.czas] = Stacja0.kanal_radio;
-           Serial.print(" Reset kanalu ");
-          //Serial.print(Stacja0.kanal_radio);
-          //Stacja0.czas_ostaniego_pakietu = millis();
-        }
-        else{
-         Stacja0.kanal_radio = (radio.CHANNEL+1)%5;
-         Stacja0.czas = (wskaznik_czasu + Stacja0.czas_pakietu)%56;
-         tablica_czasu[Stacja0.czas] = Stacja0.kanal_radio;
-          Serial.print(" skok na kanal po braku respondu ");
-          Serial.print(Stacja0.kanal_radio);
-         // Stacja0.czas_ostaniego_pakietu = millis();
-        }
-
-      }
-    break;
-  }
   // If a packet was not received at the expected time, hop the radio anyway
   // in an attempt to keep up.  Give up after 25 failed attempts.  Keep track
   // of packet stats as we go.  I consider a consecutive string of missed
   // packets to be a single resync.  Thx to Kobuki for this algorithm.
-  /*
   if (znaleziono == true) {
     uint32_t czas_pakietu1 = czas2 - lastRxTime;
     uint32_t czas_bledu= (hopCount * PACKET_INTERVAL)+30;
@@ -435,8 +227,8 @@ void loop() {
       Serial.print(" Reset kanalu ");
     }
     radio.hop();
-     Serial.print(" skok na kanal po braku respondu ");
-    Serial.print(radio.CHANNEL);
+    // Serial.print(" skok na kanal po braku respondu ");
+   // Serial.print(radio.CHANNEL);
     }
   }
   else if(hopCount == 0 && znaleziono == false){
@@ -444,20 +236,18 @@ void loop() {
     packetStats.crcErrors = 0;
     packetStats.packetsMissed = 0;
      radio.setChannel(0);
-    //Serial.print(" Reset kanalu ");
+   // Serial.print(" Reset kanalu ");
   }
-  */
 }
 //koniec void loop
 
 // Read the data from the ISS and figure out what to do with it
-void processPacket(struct DaneStacji Stacja) {
+void processPacket() {
   // Every packet has wind speed, direction, and battery status in it
 
   //DANE - PRĘDKOŚĆ WIATRU
   Serial.println(radio.DATA[0]);
   loopData.windSpeed = radio.DATA[1];
-  Stacja.windSpeed = radio.DATA[1];
   Serial.print(" ws ");
   Serial.print(loopData.windSpeed);
 
@@ -467,13 +257,11 @@ void processPacket(struct DaneStacji Stacja) {
   // values of 1 and 255 respectively
   // See http://www.wxforum.net/index.php?topic=21967.50
   loopData.windDirection = 9 + radio.DATA[2] * 342.0f / 255.0f;
-  Stacja.windDirection = loopData.windDirection;
   Serial.print(F(" wd "));
   Serial.print(loopData.windDirection);
 
   //DANE - STAN NAŁADOWANIA BATERII
   loopData.transmitterBatteryStatus = (radio.DATA[0] & 0x8) >> 3;
-  Stacja.transmitterBatteryStatus = loopData.transmitterBatteryStatus;
   Serial.print(" bat ");
   Serial.print(loopData.transmitterBatteryStatus);
   //Debug
@@ -490,14 +278,13 @@ void processPacket(struct DaneStacji Stacja) {
 
      if (test == VP2P_HUMIDITY) //WILGOTNOSC
   {
-      loopData.outsideHumidity = (float)(word(((radio.DATA[4] >> 4)<< 8) + radio.DATA[3])) / 10.0;
-      Stacja.outsideHumidity = loopData.outsideHumidity;
+        loopData.outsideHumidity = (float)(word(((radio.DATA[4] >> 4)<< 8) + radio.DATA[3])) / 10.0;
       Serial.print(" rh ");
       Serial.print(loopData.outsideHumidity);
   }
      if (test == VP2P_RAIN) //INTESYWNOSC DESZCZU
   {
-   float z  = (float)(word(radio.DATA[3]));
+    float z  = (float)(word(radio.DATA[3]));
    // uint8_t z = (uint8_t)(word(radio.DATA[5]));
     Serial.print(" re ");  
     if (z > loopData.rainRate)
@@ -524,7 +311,6 @@ void processPacket(struct DaneStacji Stacja) {
     // DANE - INDEX UV
     case VP2P_UV:
       loopData.uV = (float)(word(radio.DATA[3] << 8 + radio.DATA[4]) >> 6) / 50.0;
-      Stacja.uV = loopData.uV;
       if(radio.DATA[3]==0xFF)
         Serial.print(" uv-none ");
         else{
@@ -536,7 +322,6 @@ void processPacket(struct DaneStacji Stacja) {
     //DANE - PROMIENIOWANIE SŁONECZNE(?)
     case VP2P_SOLAR:
       loopData.solarRadiation = (float)(word(radio.DATA[3] << 8 + radio.DATA[4]) >> 6) * 1.757936;
-      Stacja.solarRadiation = loopData.solarRadiation;
       if(radio.DATA[3]==0xFF)
         Serial.print(" sr-none ");
         else{
@@ -548,7 +333,6 @@ void processPacket(struct DaneStacji Stacja) {
     //DANE - TEMPERATURA
     case VP2P_TEMP:
       loopData.outsideTemperature = (float)(word((radio.DATA[3]<<8) | (radio.DATA[4]))) / 160.0;
-      Stacja.outsideTemperature = loopData.outsideTemperature;
       float x = loopData.outsideTemperature-32;
       x =x *5;
       x = x/9;
@@ -589,20 +373,8 @@ void processPacket(struct DaneStacji Stacja) {
 }
 
 
-uint8_t obrot(uint8_t a,uint8_t b){
-    if(a<b)
-    {
-        uint8_t wynik = 57 - b;
-    }
-    else
-    {
-        uint8_t wynik = a -b;
-    }
-return wynik;
-
-}
 //--- Console command emulation ---//
-
+/*
 void cmdEebrd() {
   // TODO This is in the middle of a transition and will need to be reworked at
   // some point.  The idea is to use the real Moteino EEPROM to store this
@@ -689,7 +461,7 @@ void cmdEebrd() {
     printNack();
   }
 }
-
+*/
 void cmdLoop() {
   char *loops;
   lastLoopTime = 0;
@@ -803,7 +575,7 @@ void printOk() {
   Serial.print(F("\n\rOK\n\r"));
 }
 //Funkcja odpowiadająca za wysyłanie pakietów
-void printStrm(struct DaneStacji Stacja) {
+void printStrm() {
 /* Struktura pakietu:
     cnt <NUMER PAKIERTU> hex <DANE JAK NIŻEJ, TYLKO ZEBRANE W JEDNYM CIĄGU> ws <PRĘDKOŚĆ WIATRU> wd <KIERUNEK WIATRU> bat <STATUS BATERII> chan <KANAŁ> RSSI <MOC ODEBRANEGO SYGNAŁU> errors <WYKRYTE BŁĘDY Z CRC>  missed <PAKIETY UTRACONE> numresyncs <>
     <DANE JAK W POLU 'hex', ALE W FORMACIE STRM DAVISA>
@@ -818,7 +590,7 @@ void printStrm(struct DaneStacji Stacja) {
     sprintf(charBuffer,"%02x",radio.DATA[i]);
     Serial.print(charBuffer);
     }
-  processPacket(Stacja);
+  processPacket();
   Serial.print(F(" chan "));
   Serial.print(radio.CHANNEL);
   Serial.print(F(" RSSI "));
